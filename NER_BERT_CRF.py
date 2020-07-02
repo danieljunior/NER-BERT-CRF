@@ -89,7 +89,7 @@ learning_rate0 = 5e-5
 lr0_crf_fc = 8e-5
 weight_decay_finetune = 1e-5 #0.01
 weight_decay_crf_fc = 5e-6 #0.005
-total_train_epochs = 15
+total_train_epochs = 5
 gradient_accumulation_steps = 1
 warmup_proportion = 0.1
 output_dir = './output/'
@@ -671,7 +671,7 @@ global_step_th = int(len(train_examples) / batch_size / gradient_accumulation_st
 
 # train_start=time.time()
 # for epoch in trange(start_epoch, total_train_epochs, desc="Epoch"):
-for epoch in range(start_epoch, total_train_epochs):
+for epoch in tqdm(range(start_epoch, total_train_epochs)):
     tr_loss = 0
     train_start = time.time()
     model.train()
