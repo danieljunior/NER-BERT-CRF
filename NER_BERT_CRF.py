@@ -41,6 +41,8 @@ import pickle
 from pytorch_pretrained_bert.optimization import BertAdam, warmup_linear
 from pytorch_pretrained_bert.tokenization import BertTokenizer
 
+from seqeval.metrics import classification_report
+
 def set_work_dir(local_path="ner_bert_crf", server_path="ner_bert_crf"):
     if (os.path.exists(os.getenv("HOME")+'/'+local_path)):
         os.chdir(os.getenv("HOME")+'/'+local_path)
@@ -662,6 +664,8 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
     end = time.time()
     print('Epoch:%d, Acc:%.2f, Precision: %.2f, Recall: %.2f, F1: %.2f on %s, Spend:%.3f minutes for evaluation' \
         % (epoch_th, 100.*test_acc, 100.*precision, 100.*recall, 100.*f1, dataset_name,(end-start)/60.0))
+    report = classification_report(np.array(all_labels), np.array(all_preds), digits=4)
+    logger.info("\n%s", report)
     print('--------------------------------------------------------------')
     return test_acc, f1
 
