@@ -745,7 +745,7 @@ with torch.no_grad():
                                 batch_size=10,
                                 shuffle=False,
                                 num_workers=4,
-                                collate_fn=pad)
+                                collate_fn=NerDataset.pad)
     for batch in demon_dataloader:
         batch = tuple(t.to(device) for t in batch)
         input_ids, input_mask, segment_ids, predict_mask, label_ids = batch
