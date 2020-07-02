@@ -1,4 +1,12 @@
 # NER implementation with BERT and CRF model
+
+`pip install pytorch-pretrained-bert==0.4.0
+pip uninstall matplotlib
+python -m pip install --upgrade pip
+pip install matplotlib`
+
+- docker run -itd --rm -v ${PWD}:/app custom_nvidia bash
+
 > Zhibin Lu
 
 This is a named entity recognizer based on [BERT Model(pytorch-pretrained-BERT)](https://github.com/huggingface/pytorch-pretrained-BERT) and CRF.
