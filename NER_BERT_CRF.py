@@ -663,12 +663,19 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name, labe
             total += len(valid_label_ids)
             correct += valid_predicted.eq(valid_label_ids).sum().item() 
             
-            for i, pred_example in enumerate(valid_predicted):
-                import pdb; pdb.set_trace()
-                tmp_pred = [label_map[id_] for id_ in pred_example.detach().cpu().numpy()]
-                tmp_true = [label_map[id_] for id_ in valid_label_ids[i].cpu().numpy()]
-                y_pred.append(tmp_pred)
-                y_true.append(tmp_true)
+            import pdb; pdb.set_trace()
+
+            tmp_pred = [label_map[id_] for id_ in valid_predicted.detach().cpu().numpy()]
+            tmp_true = [label_map[id_] for id_ in valid_label_ids.detach().cpu().numpy()]
+            y_pred.append(tmp_pred)
+            y_true.append(tmp_true)
+            
+            # for i, pred_example in enumerate(valid_predicted):
+                
+                # tmp_pred = [label_map[id_] for id_ in pred_example.detach().cpu().numpy()]
+                # tmp_true = [label_map[id_] for id_ in valid_label_ids[i].cpu().numpy()]
+                # y_pred.append(tmp_pred)
+                # y_true.append(tmp_true)
 
     end = time.time()
     
