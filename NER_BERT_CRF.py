@@ -639,7 +639,7 @@ optimizer = BertAdam(optimizer_grouped_parameters, lr=learning_rate0, warmup=war
 #         return x/warmup
 #     return 1.0 - x
 
-def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
+def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name, label_map):
     # print("***** Running prediction *****")
     model.eval()
     all_preds = []
@@ -648,8 +648,7 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
     correct=0
     y_true = []
     y_pred = []
-    label_list = CoNLLDataProcessor.generate_labels()
-    label_map = {i : label for i, label in enumerate(label_list,1)}
+
     start = time.time()
     with torch.no_grad():
         for batch in predict_dataloader:
@@ -662,13 +661,12 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
             all_preds.extend(valid_predicted.tolist())
             all_labels.extend(valid_label_ids.tolist())
             total += len(valid_label_ids)
-            correct += valid_predicted.eq(valid_label_ids).sum().item()
-            
+            correct += valid_predicted.eq(valid_label_ids).sum().item() 
             
             for i, pred_example in enumerate(predicted_label_seq_ids):
                 import pdb; pdb.set_trace()
-                tmp_pred = [label_map[id_] for id_ in pred_example]
-                tmp_true = [label_map[id_] for id_ in label_ids]
+                tmp_pred = [label_map[id_] for id_ in pred_example.detach().cpu().numpy()]
+                tmp_true = [label_map[id_] for id_ in label_ids.detach().cpu().numpy()]
                 y_pred.append(tmp_pred)
                 y_true.append(tmp_true)
             # label_ids = label_ids.to('cpu').numpy()
@@ -737,7 +735,7 @@ for epoch in tqdm(range(start_epoch, total_train_epochs)):
         print("Epoch:{}-{}/{}, Negative loglikelihood: {} ".format(epoch, step, len(train_dataloader), neg_log_likelihood.item()))
     
     print("Epoch:{} completed, Total training's Loss: {}, Spend: {}m".format(epoch, tr_loss, (time.time() - train_start)/60.0))
-    valid_acc, valid_f1 = evaluate(model, dev_dataloader, batch_size, epoch, 'Valid_set')
+    valid_acc, valid_f1 = evaluate(model, dev_dataloader, batch_size, epoch, 'Valid_set', label_map)
     
     # Save a checkpoint
     if valid_f1 > valid_f1_prev:
@@ -747,7 +745,7 @@ for epoch in tqdm(range(start_epoch, total_train_epochs)):
                     os.path.join(output_dir, 'ner_bert_crf_checkpoint.pt'))
         valid_f1_prev = valid_f1
 
-evaluate(model, test_dataloader, batch_size, total_train_epochs-1, 'Test_set')
+evaluate(model, test_dataloader, batch_size, total_train_epochs-1, 'Test_set', label_map)
 
 
 #%%
@@ -768,7 +766,7 @@ print('Loaded the pretrain  NER_BERT_CRF  model, epoch:',checkpoint['epoch'],'va
 
 model.to(device)
 #evaluate(model, train_dataloader, batch_size, total_train_epochs-1, 'Train_set')
-evaluate(model, test_dataloader, batch_size, epoch, 'Test_set')
+evaluate(model, test_dataloader, batch_size, epoch, 'Test_set', label_map)
 # print('Total spend:',(time.time()-train_start)/60.0)
 
 
