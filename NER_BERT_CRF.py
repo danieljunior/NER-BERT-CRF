@@ -655,12 +655,16 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
         for batch in predict_dataloader:
             batch = tuple(t.to(device) for t in batch)
             input_ids, input_mask, segment_ids, predict_mask, label_ids = batch
-            logits = model(input_ids, segment_ids, input_mask)
+            logits, predicted_label_seq_ids = model(input_ids, segment_ids, input_mask)
+                    
+            valid_predicted = torch.masked_select(predicted_label_seq_ids, predict_mask)
+            valid_label_ids = torch.masked_select(label_ids, predict_mask)
+            all_preds.extend(valid_predicted.tolist())
+            all_labels.extend(valid_label_ids.tolist())
+            total += len(valid_label_ids)
+            correct += valid_predicted.eq(valid_label_ids).sum().item()
             
-            _, predicted_label_seq_ids = logits
             import pdb; pdb.set_trace()
-            logits = torch.argmax(F.log_softmax(logits,dim=2),dim=2)
-            logits = logits.detach().cpu().numpy()
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
             for i, label in enumerate(label_ids):
@@ -675,14 +679,7 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
                             break
                         else:
                             temp_1.append(label_map[label_ids[i][j]])
-                            temp_2.append(label_map[logits[i][j]])
-                    
-            valid_predicted = torch.masked_select(predicted_label_seq_ids, predict_mask)
-            valid_label_ids = torch.masked_select(label_ids, predict_mask)
-            all_preds.extend(valid_predicted.tolist())
-            all_labels.extend(valid_label_ids.tolist())
-            total += len(valid_label_ids)
-            correct += valid_predicted.eq(valid_label_ids).sum().item()
+                            temp_2.append(label_map[predicted_label_seq_ids[i][j].item()])
 
     end = time.time()
     
