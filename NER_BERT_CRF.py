@@ -646,12 +646,16 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
     all_labels = []
     total=0
     correct=0
+    y_true = []
+    y_pred = []
+    label_list = CoNLLDataProcessor.generate_labels()
+    label_map = {i : label for i, label in enumerate(label_list,1)}
     start = time.time()
     with torch.no_grad():
         for batch in predict_dataloader:
             batch = tuple(t.to(device) for t in batch)
             input_ids, input_mask, segment_ids, predict_mask, label_ids = batch
-            _, predicted_label_seq_ids = model(input_ids, segment_ids, input_mask)
+            logits, predicted_label_seq_ids = model(input_ids, segment_ids, input_mask)
             # _, predicted = torch.max(out_scores, -1)
             valid_predicted = torch.masked_select(predicted_label_seq_ids, predict_mask)
             valid_label_ids = torch.masked_select(label_ids, predict_mask)
@@ -664,10 +668,29 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
     test_acc = correct/total
     precision, recall, f1 = f1_score(np.array(all_labels), np.array(all_preds))
     end = time.time()
+    
+    logits = torch.argmax(F.log_softmax(logits,dim=2),dim=2)
+    logits = logits.detach().cpu().numpy()
+    label_ids = label_ids.to('cpu').numpy()
+    input_mask = input_mask.to('cpu').numpy()
+    for i, label in enumerate(label_ids):
+            temp_1 = []
+            temp_2 = []
+            for j,m in enumerate(label):
+                if j == 0:
+                    continue
+                elif label_ids[i][j] == len(label_map):
+                    y_true.append(temp_1)
+                    y_pred.append(temp_2)
+                    break
+                else:
+                    temp_1.append(label_map[label_ids[i][j]])
+                    temp_2.append(label_map[logits[i][j]])
+    report = classification_report(y_true, y_pred,digits=4)
+    print('--------------------------------------------------------------')
+    print("\n%s", report)
     print('Epoch:%d, Acc:%.2f, Precision: %.2f, Recall: %.2f, F1: %.2f on %s, Spend:%.3f minutes for evaluation' \
         % (epoch_th, 100.*test_acc, 100.*precision, 100.*recall, 100.*f1, dataset_name,(end-start)/60.0))
-    report = classification_report(np.array(all_labels), np.array(all_preds), digits=4)
-    print("\n%s", report)
     print('--------------------------------------------------------------')
     return test_acc, f1
 
@@ -683,6 +706,10 @@ for epoch in tqdm(range(start_epoch, total_train_epochs)):
     model.train()
     optimizer.zero_grad()
     # for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+    y_true = []
+    y_pred = []
+    label_list = CoNLLDataProcessor.generate_labels()
+    label_map = {i : label for i, label in enumerate(label_list,1)}
     for step, batch in enumerate(train_dataloader):
         batch = tuple(t.to(device) for t in batch)
         input_ids, input_mask, segment_ids, predict_mask, label_ids = batch
@@ -707,10 +734,29 @@ for epoch in tqdm(range(start_epoch, total_train_epochs)):
             
         print("Epoch:{}-{}/{}, Negative loglikelihood: {} ".format(epoch, step, len(train_dataloader), neg_log_likelihood.item()))
     
+    logits = torch.argmax(F.log_softmax(logits,dim=2),dim=2)
+    logits = logits.detach().cpu().numpy()
+    label_ids = label_ids.to('cpu').numpy()
+    input_mask = input_mask.to('cpu').numpy()
+    for i, label in enumerate(label_ids):
+            temp_1 = []
+            temp_2 = []
+            for j,m in enumerate(label):
+                if j == 0:
+                    continue
+                elif label_ids[i][j] == len(label_map):
+                    y_true.append(temp_1)
+                    y_pred.append(temp_2)
+                    break
+                else:
+                    temp_1.append(label_map[label_ids[i][j]])
+                    temp_2.append(label_map[logits[i][j]])
+    report = classification_report(y_true, y_pred,digits=4)
     print('--------------------------------------------------------------')
+    print("\n%s", report)
     print("Epoch:{} completed, Total training's Loss: {}, Spend: {}m".format(epoch, tr_loss, (time.time() - train_start)/60.0))
     valid_acc, valid_f1 = evaluate(model, dev_dataloader, batch_size, epoch, 'Valid_set')
-
+    
     # Save a checkpoint
     if valid_f1 > valid_f1_prev:
         # model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
