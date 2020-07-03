@@ -663,10 +663,10 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name, labe
             total += len(valid_label_ids)
             correct += valid_predicted.eq(valid_label_ids).sum().item() 
             
-            for i, pred_example in enumerate(predicted_label_seq_ids):
+            for i, pred_example in enumerate(valid_predicted):
                 # import pdb; pdb.set_trace()
                 tmp_pred = [label_map[id_] for id_ in pred_example.detach().cpu().numpy()]
-                tmp_true = [label_map[id_] for id_ in label_ids[i].cpu().numpy()]
+                tmp_true = [label_map[id_] for id_ in valid_label_ids[i].cpu().numpy()]
                 y_pred.append(tmp_pred)
                 y_true.append(tmp_true)
 
@@ -769,10 +769,11 @@ with torch.no_grad():
     y_pred = []
     all_preds = []
     all_labels = []
+    total=0
+    correct=0
     for batch in demon_dataloader:
         batch = tuple(t.to(device) for t in batch)
         input_ids, input_mask, segment_ids, predict_mask, label_ids = batch
-        
         logits, predicted_label_seq_ids = model(input_ids, segment_ids, input_mask)
                 
         valid_predicted = torch.masked_select(predicted_label_seq_ids, predict_mask)
@@ -782,10 +783,9 @@ with torch.no_grad():
         total += len(valid_label_ids)
         correct += valid_predicted.eq(valid_label_ids).sum().item() 
         
-        for i, pred_example in enumerate(predicted_label_seq_ids):
-            # import pdb; pdb.set_trace()
+        for i, pred_example in enumerate(valid_predicted):
             tmp_pred = [inv_label_map[id_] for id_ in pred_example.detach().cpu().numpy()]
-            tmp_true = [inv_label_map[id_] for id_ in label_ids[i].cpu().numpy()]
+            tmp_true = [inv_label_map[id_] for id_ in valid_label_ids[i].cpu().numpy()]
             y_pred.append(tmp_pred)
             y_true.append(tmp_true)
 
