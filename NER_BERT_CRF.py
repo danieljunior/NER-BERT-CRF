@@ -655,9 +655,11 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
         for batch in predict_dataloader:
             batch = tuple(t.to(device) for t in batch)
             input_ids, input_mask, segment_ids, predict_mask, label_ids = batch
-            logits, predicted_label_seq_ids = model(input_ids, segment_ids, input_mask)
-
-            # logits = torch.argmax(F.log_softmax(logits,dim=2),dim=2)
+            logits = model(input_ids, segment_ids, input_mask)
+            
+            _, predicted_label_seq_ids = logits
+            import pdb; pdb.set_trace()
+            logits = torch.argmax(F.log_softmax(logits,dim=2),dim=2)
             logits = logits.detach().cpu().numpy()
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
@@ -788,7 +790,7 @@ with torch.no_grad():
         # _, predicted = torch.max(out_scores, -1)
         valid_predicted = torch.masked_select(predicted_label_seq_ids, predict_mask)
         # valid_label_ids = torch.masked_select(label_ids, predict_mask)
-        # logits = torch.argmax(F.log_softmax(logits,dim=2),dim=2)
+        logits = torch.argmax(F.log_softmax(logits,dim=2),dim=2)
         logits = logits.detach().cpu().numpy()
         label_ids = label_ids.to('cpu').numpy()
         input_mask = input_mask.to('cpu').numpy()
