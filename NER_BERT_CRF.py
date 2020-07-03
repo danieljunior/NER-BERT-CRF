@@ -666,7 +666,7 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name, labe
             for i, pred_example in enumerate(predicted_label_seq_ids):
                 # import pdb; pdb.set_trace()
                 tmp_pred = [inv_map[id_] for id_ in pred_example.detach().cpu().numpy()]
-                tmp_true = [inv_map[id_] for id_ in label_ids.detach().cpu().numpy()]
+                tmp_true = [inv_map[id_] for id_ in label_ids[i].cpu().numpy()]
                 y_pred.append(tmp_pred)
                 y_true.append(tmp_true)
             # label_ids = label_ids.to('cpu').numpy()
