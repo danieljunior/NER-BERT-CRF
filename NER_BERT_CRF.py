@@ -381,6 +381,7 @@ if cuda_yes:
 conllProcessor = CoNLLDataProcessor()
 label_list = conllProcessor.get_labels()
 label_map = conllProcessor.get_label_map()
+inv_label_map = {v: k for k, v in label_map.items()}
 train_examples = conllProcessor.get_train_examples(data_dir)
 dev_examples = conllProcessor.get_dev_examples(data_dir)
 test_examples = conllProcessor.get_test_examples(data_dir)
@@ -648,7 +649,6 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name, labe
     correct=0
     y_true = []
     y_pred = []
-    inv_map = {v: k for k, v in label_map.items()}
     start = time.time()
     with torch.no_grad():
         for batch in predict_dataloader:
@@ -665,25 +665,10 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name, labe
             
             for i, pred_example in enumerate(predicted_label_seq_ids):
                 # import pdb; pdb.set_trace()
-                tmp_pred = [inv_map[id_] for id_ in pred_example.detach().cpu().numpy()]
-                tmp_true = [inv_map[id_] for id_ in label_ids[i].cpu().numpy()]
+                tmp_pred = [label_map[id_] for id_ in pred_example.detach().cpu().numpy()]
+                tmp_true = [label_map[id_] for id_ in label_ids[i].cpu().numpy()]
                 y_pred.append(tmp_pred)
                 y_true.append(tmp_true)
-            # label_ids = label_ids.to('cpu').numpy()
-            # input_mask = input_mask.to('cpu').numpy()
-            # for i, label in enumerate(label_ids):
-            #         temp_1 = []
-            #         temp_2 = []
-            #         for j,m in enumerate(label):
-            #             if j == 0:
-            #                 continue
-            #             elif label_ids[i][j] == len(label_map):
-            #                 y_true.append(temp_1)
-            #                 y_pred.append(temp_2)
-            #                 break
-            #             else:
-            #                 temp_1.append(label_map[label_ids[i][j]])
-            #                 temp_2.append(label_map[predicted_label_seq_ids[i][j].item()])
 
     end = time.time()
     
@@ -735,7 +720,7 @@ for epoch in tqdm(range(start_epoch, total_train_epochs)):
         print("Epoch:{}-{}/{}, Negative loglikelihood: {} ".format(epoch, step, len(train_dataloader), neg_log_likelihood.item()))
     
     print("Epoch:{} completed, Total training's Loss: {}, Spend: {}m".format(epoch, tr_loss, (time.time() - train_start)/60.0))
-    valid_acc, valid_f1 = evaluate(model, dev_dataloader, batch_size, epoch, 'Valid_set', label_map)
+    valid_acc, valid_f1 = evaluate(model, dev_dataloader, batch_size, epoch, 'Valid_set', inv_label_map)
     
     # Save a checkpoint
     if valid_f1 > valid_f1_prev:
@@ -745,7 +730,7 @@ for epoch in tqdm(range(start_epoch, total_train_epochs)):
                     os.path.join(output_dir, 'ner_bert_crf_checkpoint.pt'))
         valid_f1_prev = valid_f1
 
-evaluate(model, test_dataloader, batch_size, total_train_epochs-1, 'Test_set', label_map)
+evaluate(model, test_dataloader, batch_size, total_train_epochs-1, 'Test_set', inv_label_map)
 
 
 #%%
@@ -766,7 +751,7 @@ print('Loaded the pretrain  NER_BERT_CRF  model, epoch:',checkpoint['epoch'],'va
 
 model.to(device)
 #evaluate(model, train_dataloader, batch_size, total_train_epochs-1, 'Train_set')
-evaluate(model, test_dataloader, batch_size, epoch, 'Test_set', label_map)
+evaluate(model, test_dataloader, batch_size, epoch, 'Test_set', inv_label_map)
 # print('Total spend:',(time.time()-train_start)/60.0)
 
 
@@ -782,39 +767,28 @@ with torch.no_grad():
                                         collate_fn=NerDataset.pad)
     y_true = []
     y_pred = []
-    label_list = CoNLLDataProcessor.generate_labels()
-    label_map = {i : label for i, label in enumerate(label_list,1)}
+    all_preds = []
+    all_labels = []
     for batch in demon_dataloader:
         batch = tuple(t.to(device) for t in batch)
         input_ids, input_mask, segment_ids, predict_mask, label_ids = batch
+        
         logits, predicted_label_seq_ids = model(input_ids, segment_ids, input_mask)
-        # _, predicted = torch.max(out_scores, -1)
+                
         valid_predicted = torch.masked_select(predicted_label_seq_ids, predict_mask)
-        # valid_label_ids = torch.masked_select(label_ids, predict_mask)
-        logits = torch.argmax(F.log_softmax(logits,dim=2),dim=2)
-        logits = logits.detach().cpu().numpy()
-        label_ids = label_ids.to('cpu').numpy()
-        input_mask = input_mask.to('cpu').numpy()
-        for i, label in enumerate(label_ids):
-                temp_1 = []
-                temp_2 = []
-                for j,m in enumerate(label):
-                    if j == 0:
-                        continue
-                    elif label_ids[i][j] == len(label_map):
-                        y_true.append(temp_1)
-                        y_pred.append(temp_2)
-                        break
-                    else:
-                        temp_1.append(label_map[label_ids[i][j]])
-                        temp_2.append(label_map[logits[i][j]])
-        # for i in range(10):
-        #     print(predicted_label_seq_ids[i])
-        #     print(label_ids[i])
-        #     new_ids=predicted_label_seq_ids[i].cpu().numpy()[predict_mask[i].cpu().numpy()==1]
-        #     print(list(map(lambda i: label_list[i], new_ids)))
-        #     print(test_examples[i].labels)
-        # break
+        valid_label_ids = torch.masked_select(label_ids, predict_mask)
+        all_preds.extend(valid_predicted.tolist())
+        all_labels.extend(valid_label_ids.tolist())
+        total += len(valid_label_ids)
+        correct += valid_predicted.eq(valid_label_ids).sum().item() 
+        
+        for i, pred_example in enumerate(predicted_label_seq_ids):
+            # import pdb; pdb.set_trace()
+            tmp_pred = [inv_label_map[id_] for id_ in pred_example.detach().cpu().numpy()]
+            tmp_true = [inv_label_map[id_] for id_ in label_ids[i].cpu().numpy()]
+            y_pred.append(tmp_pred)
+            y_true.append(tmp_true)
+
     report = classification_report(y_true, y_pred,digits=4)
     print("\n%s", report)
     output_eval_file = os.path.join(output_dir, "eval_results.txt")
