@@ -664,22 +664,28 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
             total += len(valid_label_ids)
             correct += valid_predicted.eq(valid_label_ids).sum().item()
             
-            import pdb; pdb.set_trace()
-            label_ids = label_ids.to('cpu').numpy()
-            input_mask = input_mask.to('cpu').numpy()
-            for i, label in enumerate(label_ids):
-                    temp_1 = []
-                    temp_2 = []
-                    for j,m in enumerate(label):
-                        if j == 0:
-                            continue
-                        elif label_ids[i][j] == len(label_map):
-                            y_true.append(temp_1)
-                            y_pred.append(temp_2)
-                            break
-                        else:
-                            temp_1.append(label_map[label_ids[i][j]])
-                            temp_2.append(label_map[predicted_label_seq_ids[i][j].item()])
+            
+            for i, pred_example in enumerate(predicted_label_seq_ids):
+                import pdb; pdb.set_trace()
+                tmp_pred = [label_map[id_] for id_ in pred_example]
+                tmp_true = [label_map[id_] for id_ in label_ids]
+                y_pred.append(tmp_pred)
+                y_true.append(tmp_true)
+            # label_ids = label_ids.to('cpu').numpy()
+            # input_mask = input_mask.to('cpu').numpy()
+            # for i, label in enumerate(label_ids):
+            #         temp_1 = []
+            #         temp_2 = []
+            #         for j,m in enumerate(label):
+            #             if j == 0:
+            #                 continue
+            #             elif label_ids[i][j] == len(label_map):
+            #                 y_true.append(temp_1)
+            #                 y_pred.append(temp_2)
+            #                 break
+            #             else:
+            #                 temp_1.append(label_map[label_ids[i][j]])
+            #                 temp_2.append(label_map[predicted_label_seq_ids[i][j].item()])
 
     end = time.time()
     
