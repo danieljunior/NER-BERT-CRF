@@ -32,6 +32,7 @@ import torch.optim as optim
 
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils import data
+from torch.utils.data import SequentialSampler
 
 from tqdm import tqdm, trange
 import collections
@@ -98,7 +99,7 @@ output_dir = './output/'
 bert_model_scale = 'bert-base-cased-pt-br'
 vocab = 'vocab.txt'
 do_lower_case = False
-# eval_batch_size = 8
+eval_batch_size = 8
 # predict_batch_size = 8
 # "Proportion of training to perform linear learning rate warmup for. "
 # "E.g., 0.1 = 10% of training."
@@ -203,7 +204,7 @@ class CoNLLDataProcessor(DataProcessor):
     '''
 
     def __init__(self):
-        self._label_types = self.generate_labels()
+        self._label_types = CoNLLDataProcessor.generate_labels()
         self._num_labels = len(self._label_types)
         self._label_map = {label: i for i,
                            label in enumerate(self._label_types)}
@@ -245,7 +246,8 @@ class CoNLLDataProcessor(DataProcessor):
                 guid=guid, words=words, labels=labels))
         return examples
     
-    def generate_labels(self):
+    @staticmethod
+    def generate_labels():
         resp = ['X', '[CLS]', '[SEP]', 'O',]
         with open("tags.txt") as tags:
             for line in tags:
@@ -665,7 +667,7 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
     print('Epoch:%d, Acc:%.2f, Precision: %.2f, Recall: %.2f, F1: %.2f on %s, Spend:%.3f minutes for evaluation' \
         % (epoch_th, 100.*test_acc, 100.*precision, 100.*recall, 100.*f1, dataset_name,(end-start)/60.0))
     report = classification_report(np.array(all_labels), np.array(all_preds), digits=4)
-    logger.info("\n%s", report)
+    print("\n%s", report)
     print('--------------------------------------------------------------')
     return test_acc, f1
 
@@ -745,25 +747,55 @@ evaluate(model, test_dataloader, batch_size, epoch, 'Test_set')
 #%%
 model.eval()
 with torch.no_grad():
+    eval_sampler = SequentialSampler(test_dataset)
     demon_dataloader = data.DataLoader(dataset=test_dataset,
-                                batch_size=10,
-                                shuffle=False,
-                                num_workers=4,
-                                collate_fn=NerDataset.pad)
+                                        sampler=eval_sampler,
+                                        batch_size=eval_batch_size,
+                                        shuffle=False,
+                                        num_workers=4,
+                                        collate_fn=NerDataset.pad)
+    y_true = []
+    y_pred = []
+    label_list = CoNLLDataProcessor.generate_labels()
+    label_map = {i : label for i, label in enumerate(label_list,1)}
     for batch in demon_dataloader:
         batch = tuple(t.to(device) for t in batch)
         input_ids, input_mask, segment_ids, predict_mask, label_ids = batch
-        _, predicted_label_seq_ids = model(input_ids, segment_ids, input_mask)
+        logits, predicted_label_seq_ids = model(input_ids, segment_ids, input_mask)
         # _, predicted = torch.max(out_scores, -1)
         valid_predicted = torch.masked_select(predicted_label_seq_ids, predict_mask)
         # valid_label_ids = torch.masked_select(label_ids, predict_mask)
-        for i in range(10):
-            print(predicted_label_seq_ids[i])
-            print(label_ids[i])
-            new_ids=predicted_label_seq_ids[i].cpu().numpy()[predict_mask[i].cpu().numpy()==1]
-            print(list(map(lambda i: label_list[i], new_ids)))
-            print(test_examples[i].labels)
-        break
+        logits = torch.argmax(F.log_softmax(logits,dim=2),dim=2)
+        logits = logits.detach().cpu().numpy()
+        label_ids = label_ids.to('cpu').numpy()
+        input_mask = input_mask.to('cpu').numpy()
+        for i, label in enumerate(label_ids):
+                temp_1 = []
+                temp_2 = []
+                for j,m in enumerate(label):
+                    if j == 0:
+                        continue
+                    elif label_ids[i][j] == len(label_map):
+                        y_true.append(temp_1)
+                        y_pred.append(temp_2)
+                        break
+                    else:
+                        temp_1.append(label_map[label_ids[i][j]])
+                        temp_2.append(label_map[logits[i][j]])
+        # for i in range(10):
+        #     print(predicted_label_seq_ids[i])
+        #     print(label_ids[i])
+        #     new_ids=predicted_label_seq_ids[i].cpu().numpy()[predict_mask[i].cpu().numpy()==1]
+        #     print(list(map(lambda i: label_list[i], new_ids)))
+        #     print(test_examples[i].labels)
+        # break
+    report = classification_report(y_true, y_pred,digits=4)
+    print("\n%s", report)
+    output_eval_file = os.path.join(output_dir, "eval_results.txt")
+    with open(output_eval_file, "w") as writer:
+        print("***** Eval results *****")
+        print("\n%s", report)
+        writer.write(report)
 #%%
 print(conllProcessor.get_label_map())
 # print(test_examples[8].words)
