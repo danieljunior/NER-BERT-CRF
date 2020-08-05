@@ -570,10 +570,10 @@ class BERT_biLSTM_CRF_NER(nn.Module):
 
     def get_bert_features(self, input_ids, segment_ids, input_mask):
         #não atualiza os pesos do bert
-        with torch.no_grad():
-            bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, 
+        # with torch.no_grad():
+        bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, 
                                         # output_all_encoded_layers=False
-                                        )
+                                    )
         # retornar só a ultima camada
         return bert_seq_out[-1]
     
@@ -691,7 +691,6 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
     print('Epoch:%d, Acc:%.2f, Precision: %.2f, Recall: %.2f, F1: %.2f on %s, Spend:%.3f minutes for evaluation' \
         % (epoch_th, 100.*test_acc, 100.*precision, 100.*recall, 100.*f1, dataset_name,(end-start)/60.0))
     print('--------------------------------------------------------------')
-    import pdb; pdb.set_trace()
     return test_acc, f1
 
 #%%
