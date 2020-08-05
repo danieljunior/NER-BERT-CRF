@@ -85,7 +85,7 @@ do_predict = True
 # Whether load checkpoint file before train model
 load_checkpoint = True
 # "The vocabulary file that the BERT model was trained on."
-max_seq_length = 128 #256
+max_seq_length = 256 #128
 batch_size = 32 #32
 # "The initial learning rate for Adam."
 learning_rate0 = 5e-5

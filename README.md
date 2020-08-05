@@ -1,11 +1,6 @@
 # NER implementation with BERT and CRF model
 
-`pip install pytorch-pretrained-bert==0.4.0
-pip uninstall matplotlib
-python -m pip install --upgrade pip
-pip install matplotlib`
-
-- docker run -itd --rm -v ${PWD}:/app custom_nvidia bash
+- NV_GPU=5 nvidia-docker run -itd --rm --shm-size=32g --ulimit memlock=-1 -v ${PWD}:/app --name bert_bilstm_crf bert_bilstm_crf bash
 
 > Zhibin Lu
 
