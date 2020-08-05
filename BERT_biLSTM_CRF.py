@@ -84,11 +84,11 @@ do_eval = True
 do_predict = True
 # Whether load checkpoint file before train model
 load_checkpoint = True
-# "The vocabulary file that the BERT model was trained on."
+#https://peltarion.com/knowledge-center/documentation/modeling-view/build-an-ai-model/pretrained-snippets/bert---pretrained
 max_seq_length = 512 #128,256
-batch_size = 32 #32
+batch_size = 6 #32
 # "The initial learning rate for Adam."
-learning_rate0 = 5e-5
+learning_rate0 = 1e-5
 lr0_crf_fc = 8e-5
 weight_decay_finetune = 1e-5 #0.01
 weight_decay_crf_fc = 5e-6 #0.005
@@ -96,6 +96,7 @@ total_train_epochs = 5
 gradient_accumulation_steps = 1
 warmup_proportion = 0.1
 output_dir = './output/'
+# "The vocabulary file that the BERT model was trained on."
 bert_model_scale = 'bert-base-cased-pt-br'
 vocab = 'vocab.txt'
 do_lower_case = False
@@ -568,6 +569,7 @@ class BERT_biLSTM_CRF_NER(nn.Module):
         return max_logLL_allz_allx, path
 
     def get_bert_features(self, input_ids, segment_ids, input_mask):
+        #não atualiza os pesos do bert
         with torch.no_grad():
             bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, 
                                         # output_all_encoded_layers=False
@@ -689,6 +691,7 @@ def evaluate(model, predict_dataloader, batch_size, epoch_th, dataset_name):
     print('Epoch:%d, Acc:%.2f, Precision: %.2f, Recall: %.2f, F1: %.2f on %s, Spend:%.3f minutes for evaluation' \
         % (epoch_th, 100.*test_acc, 100.*precision, 100.*recall, 100.*f1, dataset_name,(end-start)/60.0))
     print('--------------------------------------------------------------')
+    import pdb; pdb.set_trace()
     return test_acc, f1
 
 #%%
