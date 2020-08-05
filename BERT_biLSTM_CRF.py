@@ -584,10 +584,10 @@ class BERT_biLSTM_CRF_NER(nn.Module):
         return bilstm_out
         
     def neg_log_likelihood(self, input_ids, segment_ids, input_mask, label_ids):
-        bert_feats = self.get_bilstm_features(input_ids, segment_ids, input_mask)
-        forward_score = self._forward_alg(bert_feats)
+        bilstm_feats = self.get_bilstm_features(input_ids, segment_ids, input_mask)
+        forward_score = self._forward_alg(bilstm_feats)
         # p(X=w1:t,Zt=tag1:t)=...p(Zt=tag_t|Zt-1=tag_t-1)p(xt|Zt=tag_t)...
-        gold_score = self._score_sentence(bert_feats, label_ids)
+        gold_score = self._score_sentence(bilstm_feats, label_ids)
         # - log[ p(X=w1:t,Zt=tag1:t)/p(X=w1:t) ] = - log[ p(Zt=tag1:t|X=w1:t) ]
         return torch.mean(forward_score - gold_score)
 
@@ -595,10 +595,10 @@ class BERT_biLSTM_CRF_NER(nn.Module):
     # dont confuse this with _forward_alg above.
     def forward(self, input_ids, segment_ids, input_mask):
         # Get the emission scores from the BiLSTM
-        bilstm_out, _ = self.get_bilstm_features(input_ids, segment_ids, input_mask)
+        bilstm_feats = self.get_bilstm_features(input_ids, segment_ids, input_mask)
         
         # Find the best path, given the features.
-        score, label_seq_ids = self._viterbi_decode(bilstm_out)
+        score, label_seq_ids = self._viterbi_decode(bilstm_feats)
         return score, label_seq_ids
 
 
