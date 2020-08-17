@@ -1,7 +1,13 @@
-# NER implementation with BERT and CRF model
+# NER implementation with BERT
 
-- NV_GPU=5 nvidia-docker run -itd --rm --shm-size=32g --ulimit memlock=-1 -v ${PWD}:/app --name bert_bilstm_crf bert_bilstm_crf bash
+- `docker build -t ner_bert .`
 
+- `NV_GPU=5 nvidia-docker run -itd --rm --shm-size=32g --ulimit memlock=-1 -v ${PWD}:/app --name ner_bert ner_bert bash`
+
+- `python train.py --model crf --output_dir ./output_crf/ --max_seq_length 512 --finetuning --load_checkpoint`
+
+
+# Original README
 > Zhibin Lu
 
 This is a named entity recognizer based on [BERT Model(pytorch-pretrained-BERT)](https://github.com/huggingface/pytorch-pretrained-BERT) and CRF.

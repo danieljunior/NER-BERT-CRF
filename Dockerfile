@@ -20,6 +20,7 @@ RUN wget --quiet https://repo.anaconda.com/archive/Anaconda3-2020.07-Linux-x86_6
 
 RUN mkdir -p /app
 WORKDIR /app
-RUN pip install --upgrade pip
+COPY requirements.txt requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 EXPOSE 8888

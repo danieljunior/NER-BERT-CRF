@@ -47,6 +47,8 @@ from BERT_CRF import BERT_CRF
 import metric_utils
 import argparse
 
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 def get_optimizer(model, hp, total_train_steps):
     # Prepare optimizer
@@ -102,7 +104,9 @@ if __name__=="__main__":
     # "E.g., 0.1 = 10% of training."
     parser.add_argument("--warmup_proportion", type=float, default=0.1)
     parser.add_argument("--finetuning", dest="finetuning", action="store_true")
+    parser.add_argument("--no_finetuning", dest="finetuning", action="store_false")
     parser.add_argument("--load_checkpoint", dest="load_checkpoint", action="store_true")
+    parser.add_argument("--no_load_checkpoint", dest="load_checkpoint", action="store_false")
     parser.add_argument("--do_lower_case", dest="do_lower_case", action="store_true")
     parser.add_argument("--logdir", type=str, default="checkpoints/01")
     hp = parser.parse_args()

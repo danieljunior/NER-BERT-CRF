@@ -1,0 +1,4 @@
+data/*
+bert-base-cased-pt-br/
+tags.txt
+vocab.txt
