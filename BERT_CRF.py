@@ -22,8 +22,6 @@ import sys
 import os
 import time
 import importlib
-import collections
-from tqdm import tqdm, trange
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -31,15 +29,24 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torch.autograd as autograd
 import torch.optim as optim
+
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils import data
+from torch.utils.data import SequentialSampler
+
+from tqdm import tqdm, trange
+import collections
+
 from pytorch_pretrained_bert.modeling import BertLayerNorm
 import metric_utils
 
 
-class BERT_biLSTM_CRF(nn.Module):
+
+class BERT_CRF(nn.Module):
 
     def __init__(self, bert_model, start_label_id, stop_label_id, num_labels, max_seq_length, 
                  batch_size, device, bert_output='last'):
-        super(BERT_biLSTM_CRF, self).__init__()
+        super(BERT_CRF, self).__init__()
         self.hidden_size = 768
         self.start_label_id = start_label_id
         self.stop_label_id = stop_label_id
@@ -50,11 +57,8 @@ class BERT_biLSTM_CRF(nn.Module):
         self.bert_output = bert_output
         # use pretrainded BertModel 
         self.bert = bert_model
-        # biLSTM
-        self.lstm = nn.LSTM(bidirectional=True, num_layers=2, input_size=768, 
-                            hidden_size=self.hidden_size//2, batch_first=True)
         self.dropout = torch.nn.Dropout(0.2)
-        # Maps the output of the biLSTM into label space.
+        # Maps the output of the bert into label space.
         self.hidden2label = nn.Linear(self.hidden_size, self.num_labels)
 
         # Matrix of transition parameters.  Entry i,j is the score of transitioning *to* i *from* j.
@@ -67,7 +71,6 @@ class BERT_biLSTM_CRF(nn.Module):
         self.transitions.data[start_label_id, :] = -10000
         self.transitions.data[:, stop_label_id] = -10000
 
-        #inicialização da camada linear
         nn.init.xavier_uniform_(self.hidden2label.weight)
         nn.init.constant_(self.hidden2label.bias, 0.0)
         # self.apply(self.init_bert_weights)
@@ -108,6 +111,17 @@ class BERT_biLSTM_CRF(nn.Module):
         # log_prob of all barX
         log_prob_all_barX = metric_utils.log_sum_exp_batch(log_alpha)
         return log_prob_all_barX
+
+    def _get_bert_features(self, input_ids, segment_ids, input_mask):
+        '''
+        sentances -> word embedding -> lstm -> MLP -> feats
+        '''
+        bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, output_all_encoded_layers=False)
+        if self.bert_output == 'sum':
+            # summed_last_4_layers
+            return torch.stack(bert_seq_out[-4:]).sum(0)
+        # last_layer
+        return bert_seq_out[-1]
 
     def _score_sentence(self, feats, label_ids):
         ''' 
@@ -166,40 +180,22 @@ class BERT_biLSTM_CRF(nn.Module):
 
         return max_logLL_allz_allx, path
 
-    def get_bert_features(self, input_ids, segment_ids, input_mask):
-        #não atualiza os pesos do bert
-        # with torch.no_grad():
-        bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, 
-                                        # output_all_encoded_layers=False
-                                    )
-        if self.bert_output == 'sum':
-            # summed_last_4_layers
-            return torch.stack(bert_seq_out[-4:]).sum(0)
-        # last_layer
-        return bert_seq_out[-1]
-    
-    def get_bilstm_features(self, input_ids, segment_ids, input_mask):
-        bert_seq_out = self.get_bert_features(input_ids, segment_ids, input_mask)
-        # Get the emission scores from the BiLSTM
-        bilstm_out, _ = self.lstm(bert_seq_out)
-        bilstm_out = self.dropout(bilstm_out)
-        bilstm_out = self.hidden2label(bilstm_out)
-        return bilstm_out
-        
     def neg_log_likelihood(self, input_ids, segment_ids, input_mask, label_ids):
-        bilstm_feats = self.get_bilstm_features(input_ids, segment_ids, input_mask)
-        forward_score = self._forward_alg(bilstm_feats)
+        bert_feats = self._get_bert_features(input_ids, segment_ids, input_mask)
+        bert_feats = self.dropout(bert_feats)
+        bert_feats = self.hidden2label(bert_feats)
+        forward_score = self._forward_alg(bert_feats)
         # p(X=w1:t,Zt=tag1:t)=...p(Zt=tag_t|Zt-1=tag_t-1)p(xt|Zt=tag_t)...
-        gold_score = self._score_sentence(bilstm_feats, label_ids)
+        gold_score = self._score_sentence(bert_feats, label_ids)
         # - log[ p(X=w1:t,Zt=tag1:t)/p(X=w1:t) ] = - log[ p(Zt=tag1:t|X=w1:t) ]
         return torch.mean(forward_score - gold_score)
 
     # this forward is just for predict, not for train
     # dont confuse this with _forward_alg above.
     def forward(self, input_ids, segment_ids, input_mask):
-        # Get the emission scores from the BiLSTM
-        bilstm_feats = self.get_bilstm_features(input_ids, segment_ids, input_mask)
-        
+        bert_feats = self._get_bert_features(input_ids, segment_ids, input_mask)
+        bert_feats = self.dropout(bert_feats)
+        bert_feats = self.hidden2label(bert_feats)
         # Find the best path, given the features.
-        score, label_seq_ids = self._viterbi_decode(bilstm_feats)
+        score, label_seq_ids = self._viterbi_decode(bert_feats)
         return score, label_seq_ids
