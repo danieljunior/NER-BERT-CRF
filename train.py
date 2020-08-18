@@ -213,14 +213,24 @@ if __name__=="__main__":
             batch = tuple(t.to(device) for t in batch)
             input_ids, input_mask, segment_ids, predict_mask, label_ids = batch
 
-            neg_log_likelihood = model.neg_log_likelihood(input_ids, segment_ids, input_mask, label_ids)
+            if hp.model =='token':
+                loss = model(input_ids, segment_ids, input_mask, label_ids)
+                
+                if hp.gradient_accumulation_steps > 1:
+                    loss = loss / hp.gradient_accumulation_steps
 
-            if hp.gradient_accumulation_steps > 1:
-                neg_log_likelihood = neg_log_likelihood / hp.gradient_accumulation_steps
+                loss.backward()
+                tr_loss += loss.item()
+            
+            else:
+                neg_log_likelihood = model.neg_log_likelihood(input_ids, segment_ids, 
+                                                              input_mask, label_ids)
 
-            neg_log_likelihood.backward()
+                if hp.gradient_accumulation_steps > 1:
+                    neg_log_likelihood = neg_log_likelihood / hp.gradient_accumulation_steps
 
-            tr_loss += neg_log_likelihood.item()
+                neg_log_likelihood.backward()
+                tr_loss += neg_log_likelihood.item()
 
             if (step + 1) % hp.gradient_accumulation_steps == 0:
                 # modify learning rate with special warm up BERT uses

@@ -113,10 +113,16 @@ class BERT_CRF(nn.Module):
         return log_prob_all_barX
 
     def _get_bert_features(self, input_ids, segment_ids, input_mask):
-        '''
-        sentances -> word embedding -> lstm -> MLP -> feats
-        '''
-        bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, output_all_encoded_layers=False)
+        if self.finetunning:
+            bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, 
+                                        # output_all_encoded_layers=False
+                                        )
+        else:
+            #não atualiza os pesos do bert        
+            with torch.no_grad():
+                bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, 
+                                                # output_all_encoded_layers=False
+                                            )
         if self.bert_output == 'sum':
             # summed_last_4_layers
             return torch.stack(bert_seq_out[-4:]).sum(0)

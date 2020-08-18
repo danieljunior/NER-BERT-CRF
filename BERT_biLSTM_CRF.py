@@ -38,7 +38,7 @@ import metric_utils
 class BERT_biLSTM_CRF(nn.Module):
 
     def __init__(self, bert_model, start_label_id, stop_label_id, num_labels, max_seq_length, 
-                 batch_size, device, bert_output='last'):
+                 batch_size, device, bert_output='last', finetunning=False):
         super(BERT_biLSTM_CRF, self).__init__()
         self.hidden_size = 768
         self.start_label_id = start_label_id
@@ -167,11 +167,16 @@ class BERT_biLSTM_CRF(nn.Module):
         return max_logLL_allz_allx, path
 
     def get_bert_features(self, input_ids, segment_ids, input_mask):
-        #não atualiza os pesos do bert
-        # with torch.no_grad():
-        bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, 
+        if self.finetunning:
+            bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, 
                                         # output_all_encoded_layers=False
-                                    )
+                                        )
+        else:
+            #não atualiza os pesos do bert        
+            with torch.no_grad():
+                bert_seq_out, _ = self.bert(input_ids, token_type_ids=segment_ids, attention_mask=input_mask, 
+                                                # output_all_encoded_layers=False
+                                            )
         if self.bert_output == 'sum':
             # summed_last_4_layers
             return torch.stack(bert_seq_out[-4:]).sum(0)
