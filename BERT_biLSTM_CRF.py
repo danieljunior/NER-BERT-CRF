@@ -50,6 +50,8 @@ class BERT_biLSTM_CRF(nn.Module):
         self.bert_output = bert_output
         # use pretrainded BertModel 
         self.bert = bert_model
+        self.finetunning = finetunning
+
         # biLSTM
         self.lstm = nn.LSTM(bidirectional=True, num_layers=2, input_size=768, 
                             hidden_size=self.hidden_size//2, batch_first=True)

@@ -45,7 +45,7 @@ import metric_utils
 class BERT_CRF(nn.Module):
 
     def __init__(self, bert_model, start_label_id, stop_label_id, num_labels, max_seq_length, 
-                 batch_size, device, bert_output='last'):
+                 batch_size, device, bert_output='last', finetunning=False):
         super(BERT_CRF, self).__init__()
         self.hidden_size = 768
         self.start_label_id = start_label_id
@@ -57,6 +57,7 @@ class BERT_CRF(nn.Module):
         self.bert_output = bert_output
         # use pretrainded BertModel 
         self.bert = bert_model
+        self.finetunning = finetunning
         self.dropout = torch.nn.Dropout(0.2)
         # Maps the output of the bert into label space.
         self.hidden2label = nn.Linear(self.hidden_size, self.num_labels)
