@@ -89,6 +89,7 @@ if __name__=="__main__":
     parser.add_argument("--bert_model_scale", type=str, default="bert-base-cased-pt-br")
     parser.add_argument("--vocab", type=str, default="vocab.txt")
     parser.add_argument("--model", type=str, default="token") #token, crf, bilstm_crf
+    parser.add_argument("--bert_output", type=str, default="last") #token, crf, bilstm_crf
     parser.add_argument("--data_dir", type=str, default="./data/")
     parser.add_argument("--n_epochs", type=int, default=30)
     parser.add_argument("--max_seq_length", type=int, default=128)
@@ -165,10 +166,12 @@ if __name__=="__main__":
     bert_model = BertModel.from_pretrained(hp.bert_model_scale)
     if hp.model == 'bilstm_crf':
         model = BERT_biLSTM_CRF(bert_model, start_label_id, stop_label_id, len(label_list), 
-                                    hp.max_seq_length, hp.batch_size, device. hp.finetunning)
+                                hp.max_seq_length, hp.batch_size, device, hp.bert_output,
+                                hp.finetunning)
     elif hp.model == 'crf':
         model = BERT_CRF(bert_model, start_label_id, stop_label_id, len(label_list), 
-                         hp.max_seq_length, hp.batch_size, device, hp.finetunning)
+                         hp.max_seq_length, hp.batch_size, device, hp.bert_output, 
+                         hp.finetunning)
     elif hp.model =='token':
         model = BertForTokenClassification.from_pretrained(
             hp.bert_model_scale, num_labels=len(label_list))
