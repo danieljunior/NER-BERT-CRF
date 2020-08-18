@@ -93,7 +93,7 @@ if __name__=="__main__":
     parser.add_argument("--data_dir", type=str, default="./data/")
     parser.add_argument("--n_epochs", type=int, default=10)
     parser.add_argument("--max_seq_length", type=int, default=128)
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--eval_batch_size", type=int, default=8)
     parser.add_argument("--output_dir", type=str, default="./output/")
     parser.add_argument("--learning_rate0", type=float, default=1e-5)
@@ -243,8 +243,11 @@ if __name__=="__main__":
                 optimizer.step()
                 optimizer.zero_grad()
                 global_step_th += 1
-                
-            print("Epoch:{}-{}/{}, Negative loglikelihood: {} ".format(epoch, step, len(train_dataloader), neg_log_likelihood.item()))
+            
+            if hp.model =='token':
+                print("Epoch:{}-{}/{}, CrossEntropyLoss: {} ".format(epoch, step, len(train_dataloader), loss.item()))
+            else:        
+                print("Epoch:{}-{}/{}, Negative loglikelihood: {} ".format(epoch, step, len(train_dataloader), neg_log_likelihood.item()))
         
         print("Epoch:{} completed, Total training's Loss: {}, Spend: {}m".format(epoch, tr_loss, (time.time() - train_start)/60.0))
         valid_acc, valid_f1 = metric_utils.evaluate(model, dev_dataloader, epoch, 
