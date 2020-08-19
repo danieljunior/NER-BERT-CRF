@@ -273,7 +273,7 @@ if __name__=="__main__":
     '''
     Test_set prediction using the best epoch of model
     '''
-    checkpoint = torch.load(hp.output_dir+'/checkpoint.pt', map_location='cpu')
+    checkpoint = torch.load(os.path.join(hp.output_dir, 'checkpoint.pt'), map_location='cpu')
     epoch = checkpoint['epoch']
     valid_acc_prev = checkpoint['valid_acc']
     valid_f1_prev = checkpoint['valid_f1']
@@ -299,4 +299,5 @@ if __name__=="__main__":
                                         num_workers=4,
                                         collate_fn=NerDataset.pad)
     metric_utils.evaluate(model, demon_dataloader, hp.n_epochs-1, 
-                        'Test_set', inv_label_map, device, save_results=True)
+                        'Test_set', inv_label_map, device, 
+                        output_file=os.path.join(hp.output_dir, 'eval_results.txt'))

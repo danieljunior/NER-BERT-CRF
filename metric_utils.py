@@ -46,7 +46,7 @@ def f1_score(y_true, y_pred):
     return precision, recall, f1
 
 def evaluate(model, predict_dataloader, epoch_th, dataset_name, label_map, 
-             device, save_results = False):
+             device, output_file = None):
     # print("***** Running prediction *****")
     model.eval()
     all_preds = []
@@ -60,10 +60,19 @@ def evaluate(model, predict_dataloader, epoch_th, dataset_name, label_map,
         for batch in predict_dataloader:
             batch = tuple(t.to(device) for t in batch)
             input_ids, input_mask, segment_ids, predict_mask, label_ids = batch
-            logits, predicted_label_seq_ids = model(input_ids, segment_ids, input_mask)
-                    
-            valid_predicted = torch.masked_select(predicted_label_seq_ids, predict_mask)
+            
+            try:
+                logits, predicted_label_seq_ids = model(input_ids, segment_ids, input_mask)
+                        
+                valid_predicted = torch.masked_select(predicted_label_seq_ids, predict_mask)
+            except:
+                out_scores = model(input_ids, segment_ids, input_mask)
+                # out_scores = out_scores.detach().cpu().numpy()
+                _, predicted = torch.max(out_scores, -1)
+                valid_predicted = torch.masked_select(predicted, predict_mask)
+            
             valid_label_ids = torch.masked_select(label_ids, predict_mask)
+                
             all_preds.extend(valid_predicted.tolist())
             all_labels.extend(valid_label_ids.tolist())
             total += len(valid_label_ids)
@@ -84,10 +93,8 @@ def evaluate(model, predict_dataloader, epoch_th, dataset_name, label_map,
     print('Epoch:%d, Acc:%.2f, Precision: %.2f, Recall: %.2f, F1: %.2f on %s, Spend:%.3f minutes for evaluation' \
         % (epoch_th, 100.*test_acc, 100.*precision, 100.*recall, 100.*f1, dataset_name,(end-start)/60.0))
     print('--------------------------------------------------------------')
-    if save_results:
-        output_dir = './output/'
-        output_eval_file = os.path.join(output_dir, "eval_results.txt")
-        with open(output_eval_file, "w") as writer:
+    if output_file:
+        with open(output_file, "w") as writer:
             print("***** Eval results *****")
             print("\n%s", report)
             writer.write(report)
