@@ -6,6 +6,8 @@
 
 - `python train.py --model crf --output_dir ./output_crf/ --max_seq_length 512 --finetuning --load_checkpoint`
 
+python train_longformer.py --output_dir ./output_longformer/ --finetuning --load_checkpoint
+
 
 # Original README
 > Zhibin Lu
