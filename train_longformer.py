@@ -80,7 +80,8 @@ if __name__=="__main__":
     cuda_yes = torch.cuda.is_available()
     # cuda_yes = False
     print('Cuda is available?', cuda_yes)
-    device = torch.device("cuda:0" if cuda_yes else "cpu")
+    # device = torch.device("cuda:0" if cuda_yes else "cpu")
+    device = torch.device("cuda" if cuda_yes else "cpu")
     print('Device:', device)
     
     parser = argparse.ArgumentParser()
