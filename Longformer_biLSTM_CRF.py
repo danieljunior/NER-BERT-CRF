@@ -191,14 +191,14 @@ class Longformer_biLSTM_CRF(nn.Module):
 
     def get_bert_features(self, input_ids, segment_ids, input_mask):
         if self.finetunning:
-            last_hidden_state, pooler_output, hidden_states = self.bert(input_ids, 
+            hidden_states, _ = self.bert(input_ids, 
                                                                         token_type_ids=segment_ids, 
                                                                         attention_mask=input_mask, 
                                                                     )
         else:
             #não atualiza os pesos do bert        
             with torch.no_grad():
-                last_hidden_state, pooler_output, hidden_states = self.bert(input_ids, 
+                hidden_states, _ = self.bert(input_ids, 
                                                                             token_type_ids=segment_ids, 
                                                                             attention_mask=input_mask, 
                                                 # output_all_encoded_layers=False
