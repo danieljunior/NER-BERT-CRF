@@ -32,7 +32,7 @@ import torch.nn as nn
 import torch.autograd as autograd
 import torch.optim as optim
 from pytorch_pretrained_bert.modeling import BertLayerNorm
-from transformers import BertModel, BertTokenizerFast
+from transformers import BertModel
 from transformers.modeling_longformer import LongformerSelfAttention
 import metric_utils
 

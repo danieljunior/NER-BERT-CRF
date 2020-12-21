@@ -37,11 +37,10 @@ from torch.utils.data import SequentialSampler
 from tqdm import tqdm, trange
 import collections
 
-from pytorch_pretrained_bert.modeling import BertModel, BertForTokenClassification, BertLayerNorm
 import pickle
 from pytorch_pretrained_bert.optimization import BertAdam, warmup_linear
-from pytorch_pretrained_bert.tokenization import BertTokenizer
 from data_utils import NERDataProcessor, NerDataset
+from transformers import BertModel, BertTokenizerFast
 from Longformer_biLSTM_CRF import Longformer_biLSTM_CRF, BertLong
 import metric_utils
 import argparse
@@ -166,30 +165,17 @@ if __name__=="__main__":
     model = Longformer_biLSTM_CRF(bert_model, start_label_id, stop_label_id, len(label_list), 
                             hp.max_seq_length, hp.batch_size, device, hp.bert_output,
                             hp.finetuning)
-    # elif hp.model == 'crf':
-    #     model = BERT_CRF(bert_model, start_label_id, stop_label_id, len(label_list), 
-    #                      hp.max_seq_length, hp.batch_size, device, hp.bert_output, 
-    #                      hp.finetuning)
-    # elif hp.model =='token':
-    #     model = BertForTokenClassification.from_pretrained(
-    #         hp.bert_model_scale, num_labels=len(label_list))
-
-
+    
     if hp.load_checkpoint and os.path.exists(hp.output_dir+'/checkpoint.pt'):
         checkpoint = torch.load(hp.output_dir+'/checkpoint.pt', map_location='cpu')
         start_epoch = checkpoint['epoch']+1
         valid_acc_prev = checkpoint['valid_acc']
         valid_f1_prev = checkpoint['valid_f1']
-        if hp.model =='token':
-            model = BertForTokenClassification.from_pretrained(hp.bert_model_scale, 
-                                                               state_dict=checkpoint['model_state'], 
-                                                               num_labels=len(label_list))
-        else:
-            pretrained_dict=checkpoint['model_state']
-            net_state_dict = model.state_dict()
-            pretrained_dict_selected = {k: v for k, v in pretrained_dict.items() if k in net_state_dict}
-            net_state_dict.update(pretrained_dict_selected)
-            model.load_state_dict(net_state_dict)
+        pretrained_dict=checkpoint['model_state']
+        net_state_dict = model.state_dict()
+        pretrained_dict_selected = {k: v for k, v in pretrained_dict.items() if k in net_state_dict}
+        net_state_dict.update(pretrained_dict_selected)
+        model.load_state_dict(net_state_dict)
 
         print('Loaded the pretrain model, epoch:', checkpoint['epoch'],'valid acc:', 
                 checkpoint['valid_acc'], 'valid f1:', checkpoint['valid_f1'])
@@ -280,9 +266,7 @@ if __name__=="__main__":
     pretrained_dict_selected = {k: v for k, v in pretrained_dict.items() if k in net_state_dict}
     net_state_dict.update(pretrained_dict_selected)
     model.load_state_dict(net_state_dict)
-    # model = BertForTokenClassification.from_pretrained(
-    #     bert_model_scale, state_dict=checkpoint['model_state'], num_labels=len(label_list))
-
+    
     print('Loaded the pretrain  model, epoch:',checkpoint['epoch'],'valid acc:', 
         checkpoint['valid_acc'], 'valid f1:', checkpoint['valid_f1'])
 
