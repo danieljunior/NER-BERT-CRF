@@ -214,8 +214,8 @@ class Longformer_biLSTM_CRF(nn.Module):
     def get_bilstm_features(self, input_ids, segment_ids, input_mask):
         bert_seq_out = self.get_bert_features(input_ids, segment_ids, input_mask)
         # Get the emission scores from the BiLSTM
-        # bert_seq_out = torch.tensor([bert_seq_out], dtype=torch.long)
-        bilstm_out, _ = self.lstm([bert_seq_out])
+        bert_seq_out = torch.tensor([bert_seq_out], dtype=torch.float)
+        bilstm_out, _ = self.lstm(bert_seq_out)
         bilstm_out = self.dropout(bilstm_out)
         bilstm_out = self.hidden2label(bilstm_out)
         return bilstm_out
