@@ -74,7 +74,7 @@ class Longformer_biLSTM_CRF(nn.Module):
         self.finetunning = finetunning
 
         # biLSTM
-        self.lstm = nn.LSTM(bidirectional=True, num_layers=2, input_size=3072, 
+        self.lstm = nn.LSTM(bidirectional=True, num_layers=2, input_size=768, 
                             hidden_size=self.hidden_size//2, batch_first=True)
         self.dropout = torch.nn.Dropout(0.2)
         # Maps the output of the biLSTM into label space.
