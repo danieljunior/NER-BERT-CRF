@@ -172,6 +172,12 @@ def example2feature(example, tokenizer, label_map, max_seq_length):
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
     segment_ids = [0] * len(input_ids)
     input_mask = [1] * len(input_ids)
+    
+    #padding
+    while len(input_ids) < max_seq_length:
+        input_ids.append(0)
+        input_mask.append(0)
+        segment_ids.append(0)
 
     feat=InputFeatures(
                 # guid=example.guid,
