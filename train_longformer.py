@@ -88,7 +88,7 @@ if __name__=="__main__":
     parser.add_argument("--bert_model_scale", type=str, default="legal-bert")
     parser.add_argument("--vocab", type=str, default="vocab.txt")
     parser.add_argument("--model", type=str, default="bilstm_crf") #token, crf, bilstm_crf
-    parser.add_argument("--bert_output", type=str, default="concat") #last , sum, concat
+    parser.add_argument("--bert_output", type=str, default="sum") #last , sum, concat
     parser.add_argument("--data_dir", type=str, default="./data/")
     parser.add_argument("--n_epochs", type=int, default=10)
     parser.add_argument("--max_seq_length", type=int, default=4096)
