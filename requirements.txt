@@ -2,3 +2,4 @@ pytorch-pretrained-bert==0.4.0
 torch
 matplotlib
 seqeval
+transformers==3.0.2
