@@ -162,7 +162,7 @@ if __name__=="__main__":
     stop_label_id = nerDataProcessor.get_stop_label_id()
 
     print('Loading model...')
-    bert_model = BertLong.from_pretrained(hp.bert_model_scale)
+    bert_model = BertLong.from_pretrained(hp.bert_model_scale, output_hidden_states=True)
     model = Longformer_biLSTM_CRF(bert_model, start_label_id, stop_label_id, len(label_list), 
                             hp.max_seq_length, hp.batch_size, device, hp.bert_output,
                             hp.finetuning)
